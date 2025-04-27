@@ -33,7 +33,12 @@ const api = new Hono().post(
     const nonPublicSandbox = list.find(x => x.privacy !== "public");
 
     if (nonPublicSandbox) {
-      throw new Error(`O projeto ${nonPublicSandbox.title} não é público`);
+      return c.json(
+        {
+          error: `O projeto ${nonPublicSandbox.title} não é público`
+        },
+        400
+      );
     }
 
     const sandboxesInfo = await Promise.all(list.map(getUrl));

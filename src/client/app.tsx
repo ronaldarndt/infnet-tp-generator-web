@@ -66,7 +66,17 @@ export function App() {
         json: { codeSandboxToken, dr, tp }
       });
 
-      const { sandboxes } = await response.json();
+      if (response.status !== 200 && response.status !== 400) {
+        setError("Erro desconhecido");
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.status === 400 || !("sandboxes" in data)) {
+        setError("error" in data ? data.error : "Erro desconhecido");
+        return;
+      }
 
       const doc = new jsPDF();
       doc.setFontSize(20);
@@ -93,7 +103,7 @@ export function App() {
 
       centeredText(doc, "Questões", 10);
 
-      for (const { question: questionNumber, url } of sandboxes) {
+      for (const { question: questionNumber, url } of data.sandboxes) {
         question(doc, questionNumber, url);
       }
 
