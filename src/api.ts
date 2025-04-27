@@ -5,7 +5,8 @@ import { z } from "zod";
 
 const schema = z.object({
   codeSandboxToken: z.string(),
-  dr: z.string()
+  dr: z.string(),
+  tp: z.string()
 });
 
 async function getUrl({ id, title }: SandboxInfo) {
@@ -22,12 +23,12 @@ const api = new Hono().post(
   "/sandboxes",
   zValidator("json", schema),
   async c => {
-    const body = c.req.valid("json");
+    const { codeSandboxToken, dr, tp } = c.req.valid("json");
 
-    const sdk = new CodeSandbox(body.codeSandboxToken);
+    const sdk = new CodeSandbox(codeSandboxToken);
     const { sandboxes } = await sdk.sandbox.list();
 
-    const list = sandboxes.filter(x => x.title?.startsWith(`DR${body.dr}`));
+    const list = sandboxes.filter(x => x.title?.startsWith(`DR${dr}-TP${tp}.`));
 
     const nonPublicSandbox = list.find(x => x.privacy !== "public");
 

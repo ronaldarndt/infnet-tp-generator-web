@@ -63,7 +63,7 @@ export function App() {
 
     try {
       const response = await client.sandboxes.$post({
-        json: { codeSandboxToken, dr }
+        json: { codeSandboxToken, dr, tp }
       });
 
       const { sandboxes } = await response.json();
