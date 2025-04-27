@@ -80,8 +80,6 @@ export function App() {
       listItem(doc, "Disciplina:", subject, startY + 8);
       listItem(doc, "Nome:", name, startY + 8 * 2);
       listItem(doc, "Professor(a):", professor, startY + 8 * 3);
-      listItem(doc, "DR:", dr, startY + 8 * 4);
-      listItem(doc, "TP:", tp, startY + 8 * 5);
 
       doc.setFontSize(20);
       doc.setFont("Helvetica", "bold");
