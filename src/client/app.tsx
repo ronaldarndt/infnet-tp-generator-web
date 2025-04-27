@@ -100,6 +100,10 @@ export function App() {
       const normalizedName = name.replaceAll(" ", "_").toLowerCase();
       const filename = `${normalizedName}_DR${dr}_TP${tp}.pdf`;
 
+      doc.setProperties({
+        title: filename
+      });
+
       doc.output("pdfobjectnewwindow", { filename });
     } finally {
       setLoading(false);
