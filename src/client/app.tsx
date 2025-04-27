@@ -97,7 +97,10 @@ export function App() {
         question(doc, questionNumber, url);
       }
 
-      doc.output("pdfobjectnewwindow");
+      const normalizedName = name.replaceAll(" ", "_").toLowerCase();
+      const filename = `${normalizedName}_DR${dr}_TP${tp}.pdf`;
+
+      doc.output("pdfobjectnewwindow", { filename });
     } finally {
       setLoading(false);
     }
