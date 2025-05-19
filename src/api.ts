@@ -9,13 +9,20 @@ const schema = z.object({
   tp: z.string()
 });
 
-async function getUrl({ id, title }: SandboxInfo) {
+async function getUrl({ id, title }: SandboxInfo, tp: number) {
   const resp = await fetch("https://codesandbox.io/api/v1/sandboxes/" + id);
   const data = (await resp.json()) as { data: { alias: string } };
 
+  const sandboxTitle = title?.trim();
+
+  const question =
+    tp > 1
+      ? sandboxTitle?.split(".").at(-1)?.split("-").at(0)
+      : sandboxTitle?.split(".").at(-1);
+
   return {
     url: `https://codesandbox.io/p/sandbox/${data.data.alias}`,
-    question: Number(title?.split(".").at(-1))
+    question: Number(question)
   };
 }
 
@@ -26,9 +33,31 @@ const api = new Hono().post(
     const { codeSandboxToken, dr, tp } = c.req.valid("json");
 
     const sdk = new CodeSandbox(codeSandboxToken);
-    const { sandboxes } = await sdk.sandbox.list();
+    let sandboxes: SandboxInfo[] = [];
+    let page = 1;
 
-    const list = sandboxes.filter(x => x.title?.startsWith(`DR${dr}-TP${tp}.`));
+    while (true) {
+      const res = await sdk.sandbox.list({
+        pagination: { page, pageSize: 10 }
+      });
+
+      sandboxes.push(...res.sandboxes);
+      page += 1;
+
+      if (!res.pagination.nextPage) {
+        break;
+      }
+    }
+
+    const tpNumber = Number(tp);
+
+    const pattern = new RegExp(`TP${tp}\\.(\\d+)-DR${dr}`);
+
+    const list = sandboxes.filter(x =>
+      tpNumber > 1
+        ? x.title?.trim().match(pattern)
+        : x.title?.trim().startsWith(`DR${dr}-TP${tp}.`)
+    );
 
     const nonPublicSandbox = list.find(x => x.privacy !== "public");
 
@@ -41,7 +70,7 @@ const api = new Hono().post(
       );
     }
 
-    const sandboxesInfo = await Promise.all(list.map(getUrl));
+    const sandboxesInfo = await Promise.all(list.map(l => getUrl(l, tpNumber)));
 
     return c.json({
       sandboxes: sandboxesInfo
