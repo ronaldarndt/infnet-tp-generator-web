@@ -6,7 +6,8 @@ import { z } from "zod";
 const schema = z.object({
   codeSandboxToken: z.string(),
   dr: z.string(),
-  tp: z.string()
+  tp: z.string(),
+  type: z.enum(["tp", "at"]).default("tp")
 });
 
 async function getUrl({ id, title }: SandboxInfo, tp: number) {
@@ -30,7 +31,7 @@ const api = new Hono().post(
   "/sandboxes",
   zValidator("json", schema),
   async c => {
-    const { codeSandboxToken, dr, tp } = c.req.valid("json");
+    const { codeSandboxToken, dr, tp, type } = c.req.valid("json");
 
     const sdk = new CodeSandbox(codeSandboxToken);
     let sandboxes: SandboxInfo[] = [];
@@ -51,13 +52,21 @@ const api = new Hono().post(
 
     const tpNumber = Number(tp);
 
-    const pattern = new RegExp(`TP${tp}\\.(\\d+)-DR${dr}`);
+    function filterSandboxTitle(title: string | undefined) {
+      const trimmed = title?.trim();
 
-    const list = sandboxes.filter(x =>
-      tpNumber > 1
-        ? x.title?.trim().match(pattern)
-        : x.title?.trim().startsWith(`DR${dr}-TP${tp}.`)
-    );
+      if (type === "at") {
+        return trimmed?.match(new RegExp(`AT\\.(\\d+)-DR${dr}`, "i"));
+      }
+
+      const pattern = new RegExp(`TP${tp}\\.(\\d+)-DR${dr}`);
+
+      return tpNumber > 1
+        ? trimmed?.match(pattern)
+        : trimmed?.startsWith(`DR${dr}-TP${tp}.`);
+    }
+
+    const list = sandboxes.filter(x => filterSandboxTitle(x.title));
 
     const nonPublicSandbox = list.find(x => x.privacy !== "public");
 

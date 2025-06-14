@@ -39,6 +39,13 @@ body {
   padding: 0.5rem;
 }
 
+select {
+  background-color: #44403b;
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+}
+
 main {
   display: flex;
   padding: 2rem;

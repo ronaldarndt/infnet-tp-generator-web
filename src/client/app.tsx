@@ -19,6 +19,7 @@ export function App() {
   const [subject, setSubject] = useLocalStorage("subject", "");
   const [dr, setDr] = useLocalStorage("dr", "");
   const [tp, setTp] = useLocalStorage("tp", "");
+  const [type, setType] = useLocalStorage<"tp" | "at">("type", "tp");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -63,7 +64,7 @@ export function App() {
 
     try {
       const response = await client.sandboxes.$post({
-        json: { codeSandboxToken, dr, tp }
+        json: { codeSandboxToken, dr, tp, type }
       });
 
       if (response.status !== 200 && response.status !== 400) {
@@ -81,7 +82,11 @@ export function App() {
       const doc = new jsPDF();
       doc.setFontSize(20);
       doc.setFont("Helvetica", "bold");
-      centeredText(doc, `TESTE DE PERFORMANCE ${tp}`, 10);
+      centeredText(
+        doc,
+        type === "tp" ? `TESTE DE PERFORMANCE ${tp}` : "Assessment",
+        10
+      );
       centeredImage(doc, logo, 20, 150, 150);
 
       doc.setFontSize(12);
@@ -108,7 +113,9 @@ export function App() {
       }
 
       const normalizedName = name.replaceAll(" ", "_").toLowerCase();
-      const filename = `${normalizedName}_DR${dr}_TP${tp}.pdf`;
+      const filename = `${normalizedName}_DR${dr}_${
+        type === "tp" ? `TP${tp}` : "AT"
+      }.pdf`;
 
       doc.setProperties({
         title: filename
@@ -186,7 +193,22 @@ export function App() {
 
       <TextBox label="DR:" value={dr} onChange={setDr} type="number" />
 
-      <TextBox label="TP:" value={tp} onChange={setTp} type="number" />
+      <label class="textbox">
+        Tipo:
+        <select
+          value={type}
+          onChange={e =>
+            setType((e.target as HTMLSelectElement).value as "tp" | "at")
+          }
+        >
+          <option value="tp">TP</option>
+          <option value="at">AT</option>
+        </select>
+      </label>
+
+      {type === "tp" && (
+        <TextBox label="TP:" value={tp} onChange={setTp} type="number" />
+      )}
 
       <button
         className="btn"
