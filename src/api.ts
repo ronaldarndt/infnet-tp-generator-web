@@ -3,6 +3,11 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
+enum Format {
+  V1,
+  V2
+}
+
 const schema = z.object({
   codeSandboxToken: z.string(),
   dr: z.string(),
@@ -10,14 +15,14 @@ const schema = z.object({
   type: z.enum(["tp", "at"]).default("tp")
 });
 
-async function getUrl({ id, title }: SandboxInfo, tp: number) {
+async function getUrl({ id, title }: SandboxInfo, format: Format) {
   const resp = await fetch("https://codesandbox.io/api/v1/sandboxes/" + id);
   const data = (await resp.json()) as { data: { alias: string } };
 
   const sandboxTitle = title?.trim();
 
   const question =
-    tp > 1
+    format === Format.V2
       ? sandboxTitle?.split(".").at(-1)?.split("-").at(0)
       : sandboxTitle?.split(".").at(-1);
 
@@ -51,6 +56,9 @@ const api = new Hono().post(
     }
 
     const tpNumber = Number(tp);
+    const drNumber = Number(dr);
+
+    const format = tpNumber > 1 || drNumber > 2 ? Format.V2 : Format.V1;
 
     function filterSandboxTitle(title: string | undefined) {
       const trimmed = title?.trim();
@@ -61,7 +69,7 @@ const api = new Hono().post(
 
       const pattern = new RegExp(`TP${tp}\\.(\\d+)-DR${dr}`);
 
-      return tpNumber > 1
+      return format
         ? trimmed?.match(pattern)
         : trimmed?.startsWith(`DR${dr}-TP${tp}.`);
     }
@@ -79,7 +87,7 @@ const api = new Hono().post(
       );
     }
 
-    const sandboxesInfo = await Promise.all(list.map(l => getUrl(l, tpNumber)));
+    const sandboxesInfo = await Promise.all(list.map(l => getUrl(l, format)));
 
     return c.json({
       sandboxes: sandboxesInfo
