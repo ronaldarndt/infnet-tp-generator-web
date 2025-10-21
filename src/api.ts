@@ -32,62 +32,61 @@ async function getUrl({ id, title }: SandboxInfo, format: Format) {
   };
 }
 
+function getTpId(format: Format, dr: string, tp: string, i: number) {
+  return format === Format.V1 ? `DR${dr}-TP${tp}.${i}` : `TP${tp}.${i}-DR${dr}`;
+}
+
+function getAtId(dr: string, i: number) {
+  return `AT.${i}-DR${dr}`;
+}
+
 const api = new Hono().post(
   "/sandboxes",
   zValidator("json", schema),
   async c => {
     const { codeSandboxToken, dr, tp, type } = c.req.valid("json");
 
-    const sdk = new CodeSandbox(codeSandboxToken);
-    let sandboxes: SandboxInfo[] = [];
-    let page = 1;
-
-    while (true) {
-      const res = await sdk.sandbox.list({
-        pagination: { page, pageSize: 10 }
-      });
-
-      sandboxes.push(...res.sandboxes);
-      page += 1;
-
-      if (!res.pagination.nextPage) {
-        break;
-      }
-    }
-
     const tpNumber = Number(tp);
     const drNumber = Number(dr);
 
     const format = tpNumber > 1 || drNumber > 2 ? Format.V2 : Format.V1;
 
-    function filterSandboxTitle(title: string | undefined) {
-      const trimmed = title?.trim();
+    const sdk = new CodeSandbox(codeSandboxToken);
+    const sandboxes: SandboxInfo[] = [];
 
-      if (type === "at") {
-        return trimmed?.match(new RegExp(`AT\\.(\\d+)-DR${dr}`, "i"));
+    for (let i = 1; i <= 16; i++) {
+      const id = type === "at" ? getAtId(dr, i) : getTpId(format, dr, tp, i);
+
+      try {
+        const sandbox = await sdk.sandboxes.get(id);
+
+        if (sandbox.privacy !== "public") {
+          return c.json(
+            {
+              error: `A atividade ${id} não é pública`
+            },
+            400
+          );
+        }
+
+        sandboxes.push(sandbox);
+      } catch {
+        if (type === "tp" || i === 1) {
+          return c.json(
+            {
+              error: `A atividade ${id} não foi encontrada`
+            },
+            400
+          );
+        }
+
+        break;
       }
-
-      const pattern = new RegExp(`TP${tp}\\.(\\d+)-DR${dr}`);
-
-      return format
-        ? trimmed?.match(pattern)
-        : trimmed?.startsWith(`DR${dr}-TP${tp}.`);
     }
 
-    const list = sandboxes.filter(x => filterSandboxTitle(x.title));
-
-    const nonPublicSandbox = list.find(x => x.privacy !== "public");
-
-    if (nonPublicSandbox) {
-      return c.json(
-        {
-          error: `O projeto ${nonPublicSandbox.title} não é público`
-        },
-        400
-      );
-    }
-
-    const sandboxesInfo = await Promise.all(list.map(l => getUrl(l, format)));
+    const sandboxesInfo = await Promise.all(
+      sandboxes.map(l => getUrl(l, format))
+    );
 
     return c.json({
       sandboxes: sandboxesInfo
