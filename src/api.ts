@@ -1,7 +1,7 @@
-import { CodeSandbox, SandboxInfo } from "@codesandbox/sdk";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
+import { CodeSandboxApi, Sandbox, SandboxPrivacy } from "./utils/api";
 
 enum Format {
   V1,
@@ -15,9 +15,9 @@ const schema = z.object({
   type: z.enum(["tp", "at"]).default("tp")
 });
 
-async function getUrl({ id, title }: SandboxInfo, format: Format) {
+async function getUrl({ id, title }: Sandbox, format: Format) {
   const resp = await fetch("https://codesandbox.io/api/v1/sandboxes/" + id);
-  const data = (await resp.json()) as { data: { alias: string } };
+  const { data } = (await resp.json()) as { data: { alias: string } };
 
   const sandboxTitle = title?.trim();
 
@@ -27,17 +27,29 @@ async function getUrl({ id, title }: SandboxInfo, format: Format) {
       : sandboxTitle?.split(".").at(-1);
 
   return {
-    url: `https://codesandbox.io/p/sandbox/${data.data.alias}`,
+    url: `https://codesandbox.io/p/sandbox/${data.alias}`,
     question: Number(question)
   };
 }
 
-function getTpId(format: Format, dr: string, tp: string, i: number) {
-  return format === Format.V1 ? `DR${dr}-TP${tp}.${i}` : `TP${tp}.${i}-DR${dr}`;
-}
+function filterSandboxTitle(
+  title: string | undefined,
+  type: "tp" | "at",
+  dr: string,
+  tp: string,
+  format: Format
+) {
+  const trimmed = title?.trim();
 
-function getAtId(dr: string, i: number) {
-  return `AT.${i}-DR${dr}`;
+  if (type === "at") {
+    return trimmed?.match(new RegExp(`AT\\.(\\d+)-DR${dr}`, "i"));
+  }
+
+  const pattern = new RegExp(`TP${tp}\\.(\\d+)-DR${dr}`);
+
+  return format
+    ? trimmed?.match(pattern)
+    : trimmed?.startsWith(`DR${dr}-TP${tp}.`);
 }
 
 const api = new Hono().post(
@@ -51,37 +63,62 @@ const api = new Hono().post(
 
     const format = tpNumber > 1 || drNumber > 2 ? Format.V2 : Format.V1;
 
-    const sdk = new CodeSandbox(codeSandboxToken);
-    const sandboxes: SandboxInfo[] = [];
+    const api = new CodeSandboxApi(codeSandboxToken);
+    const sandboxes: Sandbox[] = [];
 
-    for (let i = 1; i <= 16; i++) {
-      const id = type === "at" ? getAtId(dr, i) : getTpId(format, dr, tp, i);
+    let page = 1;
 
+    while (true) {
       try {
-        const sandbox = await sdk.sandboxes.get(id);
+        const response = await api.listSandboxes({
+          direction: "desc",
+          orderBy: "inserted_at",
+          pageSize: 50,
+          page
+        });
 
-        if (sandbox.privacy !== "public") {
+        const filtered = response.sandboxes.filter(s =>
+          filterSandboxTitle(s.title ?? "", type, dr, tp, format)
+        );
+
+        const privateSandbox = filtered.find(
+          x => x.privacy === SandboxPrivacy.private
+        );
+
+        if (privateSandbox) {
           return c.json(
             {
-              error: `A atividade ${id} não é pública`
+              error: `A atividade ${privateSandbox.title} não é pública`
             },
             400
           );
         }
 
-        sandboxes.push(sandbox);
-      } catch {
-        if (type === "tp" || i === 1) {
-          return c.json(
-            {
-              error: `A atividade ${id} não foi encontrada`
-            },
-            400
-          );
+        sandboxes.push(...filtered);
+
+        if (!response.pagination.nextPage || sandboxes.length >= 16) {
+          break;
         }
 
-        break;
+        page += 1;
+      } catch (e: unknown) {
+        return c.json(
+          {
+            error: "Token do CodeSandbox inválido",
+            details: (e as Error).toString()
+          },
+          400
+        );
       }
+    }
+
+    if (sandboxes.length === 0) {
+      return c.json(
+        {
+          error: `Nenhum sandbox encontrado`
+        },
+        400
+      );
     }
 
     const sandboxesInfo = await Promise.all(

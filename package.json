@@ -4,22 +4,19 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build --mode client && vite build",
-    "deploy": "bun run build && wrangler deploy --no-bundle"
+    "deploy": "bun run build && wrangler deploy"
   },
   "dependencies": {
-    "@codesandbox/sdk": "2.4.0",
-    "@hono/zod-validator": "^0.4.3",
-    "add": "^2.0.6",
-    "bun": "^1.2.10",
-    "hono": "^4.6.10",
+    "@hono/zod-validator": "^0.7.4",
+    "hono": "^4.10.2",
     "jspdf": "^3.0.1",
-    "vite": "^5.4.11"
+    "vite": "^7.1.11"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@cloudflare/workers-types": "^4.20241022.0",
-    "@hono/vite-build": "^1.1.0",
-    "@hono/vite-dev-server": "^0.17.0",
-    "wrangler": "^4.15.2"
+    "@hono/vite-build": "^1.7.0",
+    "@hono/vite-dev-server": "^0.23.0",
+    "wrangler": "^4.44.0"
   }
 }

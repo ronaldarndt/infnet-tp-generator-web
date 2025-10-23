@@ -10,15 +10,15 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: "./src/client/index.tsx",
           output: {
-            entryFileNames: "assets/[name]-[hash].js",
-          },
+            entryFileNames: "assets/[name]-[hash].js"
+          }
         },
         outDir: "./public",
         copyPublicDir: true,
         emptyOutDir: true,
-        manifest: true,
+        manifest: true
       },
-      publicDir: "./src/public",
+      publicDir: "./src/public"
     };
   }
 
@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
     server: { port: 8787 },
     plugins: [
       devServer({ adapter: cloudflareAdapter, entry }),
-      build({ entry }),
-    ],
+      build({ entry })
+    ]
   };
 });

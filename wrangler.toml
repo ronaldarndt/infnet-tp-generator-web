@@ -1,10 +1,10 @@
 name = "infnet-tp-generator-api"
 main = "dist/index.js"
-compatibility_date = "2024-11-19"
+compatibility_date = "2025-10-20"
 
 assets = { directory = "./public/" }
 
-compatibility_flags = [ "nodejs_compat" ]
+compatibility_flags = [ "nodejs_compat_v2" ]
 
 # [vars]
 # MY_VAR = "my-variable"

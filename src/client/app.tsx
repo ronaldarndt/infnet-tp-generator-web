@@ -54,7 +54,7 @@ export function App() {
       return;
     }
 
-    if (!tp) {
+    if (!tp && type === "tp") {
       setError("TP não pode ser vazio");
       return;
     }
