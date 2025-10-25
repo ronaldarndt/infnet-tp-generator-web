@@ -17,6 +17,7 @@ export function App() {
   const [name, setName] = useLocalStorage("name", "");
   const [professor, setProfessor] = useLocalStorage("professor", "");
   const [subject, setSubject] = useLocalStorage("subject", "");
+  const [semester, setSemester] = useLocalStorage("semester", "");
   const [dr, setDr] = useLocalStorage("dr", "");
   const [tp, setTp] = useLocalStorage("tp", "");
   const [type, setType] = useLocalStorage<"tp" | "at">("type", "tp");
@@ -49,6 +50,11 @@ export function App() {
       return;
     }
 
+    if (!semester) {
+      setError("Semestre não pode ser vazio");
+      return;
+    }
+
     if (!dr) {
       setError("DR não pode ser vazio");
       return;
@@ -64,7 +70,7 @@ export function App() {
 
     try {
       const response = await client.sandboxes.$post({
-        json: { codeSandboxToken, dr, tp, type }
+        json: { codeSandboxToken, dr, tp, type, semester }
       });
 
       if (response.status !== 200 && response.status !== 400) {
@@ -108,7 +114,7 @@ export function App() {
 
       centeredText(doc, "Questões", 10);
 
-      for (const { question: questionNumber, url } of data.sandboxes) {
+      for (const { questionNumber, url } of data.sandboxes) {
         question(doc, questionNumber, url);
       }
 
@@ -188,6 +194,13 @@ export function App() {
         label="Disciplina:"
         value={subject}
         onChange={setSubject}
+        type="text"
+      />
+
+      <TextBox
+        label="Semestre:"
+        value={semester}
+        onChange={setSemester}
         type="text"
       />
 
