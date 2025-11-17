@@ -9,11 +9,14 @@ export default class AssignmentService {
   private v1TpPattern: string;
   private tpRegex: RegExp;
 
+  private customSandboxPatternRegex: RegExp | null = null;
+
   constructor(
     private dr: number,
     private tp: number,
     private semester: number,
-    private type: AssignmentType
+    private type: AssignmentType,
+    private customSandboxPattern?: string
   ) {
     this.format = AssignmentService.getFormat(tp, dr, semester);
 
@@ -32,10 +35,23 @@ export default class AssignmentService {
     }
 
     this.tpRegex = new RegExp(tpPattern);
+
+    if (this.customSandboxPattern) {
+      const injected = this.customSandboxPattern
+        .replaceAll("{{dr}}", this.dr.toString())
+        .replaceAll("{{tp}}", this.tp.toString())
+        .replaceAll("{{semester}}", this.semester.toString());
+
+      this.customSandboxPatternRegex = new RegExp(injected, "i");
+    }
   }
 
   public checkSandboxIsFromAssignment(title: string | undefined | null) {
     const trimmed = title?.trim();
+
+    if (this.customSandboxPatternRegex) {
+      return this.customSandboxPatternRegex.test(trimmed ?? "");
+    }
 
     if (this.type === "at") {
       return this.checkAtSandboxIsFromAssignment(trimmed);
@@ -46,6 +62,11 @@ export default class AssignmentService {
 
   public getQuestionNumberFromTitle(title: string | undefined | null) {
     const trimmed = title?.trim();
+
+    if (this.customSandboxPatternRegex) {
+      const match = this.customSandboxPatternRegex.exec(trimmed ?? "");
+      return match && match[1] ? Number(match[1]) : NaN;
+    }
 
     const question =
       this.format > AssignmentSandboxFormat.V1

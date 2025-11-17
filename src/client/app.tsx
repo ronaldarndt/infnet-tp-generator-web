@@ -21,6 +21,10 @@ export function App() {
   const [dr, setDr] = useLocalStorage("dr", "");
   const [tp, setTp] = useLocalStorage("tp", "");
   const [type, setType] = useLocalStorage<"tp" | "at">("type", "tp");
+  const [customSandboxPattern, setCustomSandboxPattern] = useLocalStorage(
+    "customSandboxPattern",
+    ""
+  );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -70,7 +74,7 @@ export function App() {
 
     try {
       const response = await client.sandboxes.$post({
-        json: { codeSandboxToken, dr, tp, type, semester }
+        json: { codeSandboxToken, dr, tp, type, semester, customSandboxPattern }
       });
 
       if (response.status !== 200 && response.status !== 400) {
@@ -222,6 +226,13 @@ export function App() {
       {type === "tp" && (
         <TextBox label="TP:" value={tp} onChange={setTp} type="number" />
       )}
+
+      <TextBox
+        label="Padrão customizado do sandbox:"
+        value={customSandboxPattern}
+        onChange={setCustomSandboxPattern}
+        type="text"
+      />
 
       <button
         className="btn"

@@ -9,6 +9,7 @@ const schema = z.object({
   dr: z.coerce.number(),
   tp: z.coerce.number(),
   semester: z.coerce.number(),
+  customSandboxPattern: z.string().optional(),
   type: z.enum(["tp", "at"]).default("tp")
 });
 
@@ -16,10 +17,17 @@ const api = new Hono().post(
   "/sandboxes",
   zValidator("json", schema),
   async c => {
-    const { codeSandboxToken, dr, tp, type, semester } = c.req.valid("json");
+    const { codeSandboxToken, dr, tp, type, semester, customSandboxPattern } =
+      c.req.valid("json");
 
     const sandboxesService = new SandboxesService(codeSandboxToken);
-    const assignmentService = new AssignmentService(dr, tp, semester, type);
+    const assignmentService = new AssignmentService(
+      dr,
+      tp,
+      semester,
+      type,
+      customSandboxPattern
+    );
 
     const sandboxesResult = await sandboxesService.list({
       filter: s => assignmentService.checkSandboxIsFromAssignment(s.title),
